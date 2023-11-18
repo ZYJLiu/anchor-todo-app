@@ -16,7 +16,7 @@ import { useMemo } from "react";
 export function Providers({ children }: { children: React.ReactNode }) {
   const network = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-  const wallets = useMemo(() => [new SolflareWalletAdapter()], [network]);
+  const wallets = useMemo(() => [new SolflareWalletAdapter()], []);
 
   return (
     <NextUIProvider>

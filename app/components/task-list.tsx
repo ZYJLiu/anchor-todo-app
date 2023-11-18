@@ -28,44 +28,14 @@ export default function TaskList() {
   const [isUpdateLoading, setIsUpdateLoading] = useState(false);
   const [deleteLoadingStates, setDeleteLoadingStates] = useState(new Map());
 
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, connected, sendTransaction } = useWallet();
   const { connection } = useConnection();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     fetchProgramAccounts();
-  }, [publicKey]);
 
-  const fetchProgramAccounts = async () => {
-    if (!publicKey) {
-      // If the user disconnects, clear the task map
-      setTaskMap(new Map());
-      return;
-    }
-
-    // Fetch all program accounts for the current connected user
-    const programAccounts = await program.account.task.all([
-      {
-        memcmp: {
-          bytes: publicKey.toString(),
-          offset: 8,
-        },
-      },
-    ]);
-
-    // Convert the array to a map and save it to state
-    const newTaskMap = new Map();
-    programAccounts.forEach((account) => {
-      newTaskMap.set(
-        account.publicKey.toString(), // on-chain task account address
-        account.account // task account data
-      );
-    });
-    setTaskMap(newTaskMap);
-  };
-
-  useEffect(() => {
     const createTaskEventListener = program.addEventListener(
       "CreateTask",
       (event) => updateMapWithEvent(event)
@@ -95,13 +65,45 @@ export default function TaskList() {
 
       removeEventListeners();
     };
-  }, [program]);
+  }, [connected]);
+
+  const fetchProgramAccounts = async () => {
+    if (!publicKey) {
+      // If the user disconnects, clear the task map
+      setTaskMap(new Map());
+      return;
+    }
+
+    // Fetch all program accounts for the current connected user
+    const programAccounts = await program.account.task.all([
+      {
+        memcmp: {
+          bytes: publicKey.toString(), // filter for user account address
+          offset: 8, // 8 byte discriminator offset
+        },
+      },
+    ]);
+
+    // Convert the array to a map and save it to state
+    const newTaskMap = new Map();
+    programAccounts.forEach((account) => {
+      newTaskMap.set(
+        account.publicKey.toString(), // on-chain task account address
+        account.account // task account data
+      );
+    });
+    setTaskMap(newTaskMap);
+  };
 
   const updateMapWithEvent = (event: any, isDelete = false) => {
+    console.log("event: ", event);
+    console.log("user: ", event.user.toString());
+    console.log("task: ", event.task.toString());
+    console.log("wallet", publicKey?.toString());
+    // Only update the map if the event is for the current user
+    if (event.user.toString() != publicKey?.toString()) return;
+
     setTaskMap((prevTaskMap) => {
-      console.log("event: ", event);
-      // Only update the map if the event is for the current user
-      if (event.user.toString() !== publicKey?.toString()) return prevTaskMap;
       const newTaskMap = new Map(prevTaskMap);
       if (isDelete) {
         newTaskMap.delete(event.task.toString());
