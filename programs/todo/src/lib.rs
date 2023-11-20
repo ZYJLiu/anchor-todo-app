@@ -50,7 +50,7 @@ pub struct Create<'info> {
     #[account(
         init, 
         payer = user, 
-        space = 8 + 32 + 4 + input.len(),
+        space = Task::calculate(&input),
     )]
     pub task: Account<'info, Task>,
     pub system_program: Program<'info, System>,
@@ -63,7 +63,7 @@ pub struct Update<'info> {
     pub user: Signer<'info>,
     #[account(
         mut,
-        realloc = 8 + 32 + 4 + input.len(),
+        realloc = Task::calculate(&input),
         realloc::payer = user,
         realloc::zero = false,
         has_one = user,
@@ -86,8 +86,19 @@ pub struct Delete<'info> {
 
 #[account]
 pub struct Task {
-    user: Pubkey,
-    message: String, 
+    user: Pubkey, // 32 bytes
+    message: String, // 4 bytes + String length
+}
+
+impl Task {
+    // Constant part of the Task account size
+    // 8 byte Anchor Discriminator + 32 byte Pubkey + 4 byte String Length Prefix
+    const FIXED_LEN: usize = 8 + 32 + 4;
+
+    // Calculate the total account size based on an input message
+    pub fn calculate(input: &str) -> usize {
+        Task::FIXED_LEN + input.len()
+    }
 }
 
 #[event]

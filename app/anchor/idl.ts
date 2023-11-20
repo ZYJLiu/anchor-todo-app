@@ -19,16 +19,6 @@ export type Todo = {
           name: "systemProgram";
           isMut: false;
           isSigner: false;
-        },
-        {
-          name: "eventAuthority";
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: "program";
-          isMut: false;
-          isSigner: false;
         }
       ];
       args: [
@@ -53,16 +43,6 @@ export type Todo = {
         },
         {
           name: "systemProgram";
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: "eventAuthority";
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: "program";
           isMut: false;
           isSigner: false;
         }
@@ -190,16 +170,6 @@ export const IDL: Todo = {
           isMut: false,
           isSigner: false,
         },
-        {
-          name: "eventAuthority",
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: "program",
-          isMut: false,
-          isSigner: false,
-        },
       ],
       args: [
         {
@@ -223,16 +193,6 @@ export const IDL: Todo = {
         },
         {
           name: "systemProgram",
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: "eventAuthority",
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: "program",
           isMut: false,
           isSigner: false,
         },
