@@ -91,13 +91,13 @@ pub struct Task {
 }
 
 impl Task {
-    // Constant part of the Task account size
-    // 8 byte Anchor Discriminator + 32 byte Pubkey + 4 byte String Length Prefix
-    const FIXED_LEN: usize = 8 + 32 + 4;
+    const ANCHOR_DISCRIMINATOR_SIZE: usize = 8;
+    const PUBKEY_SIZE: usize = 32;
+    const STRING_LENGTH_SIZE: usize = 4;
+    const TASK_ACCOUNT_SIZE: usize = Self::ANCHOR_DISCRIMINATOR_SIZE + Self::PUBKEY_SIZE + Self::STRING_LENGTH_SIZE;  
 
-    // Calculate the total account size based on an input message
     pub fn calculate(input: &str) -> usize {
-        Task::FIXED_LEN + input.len()
+        Self::TASK_ACCOUNT_SIZE + input.len()
     }
 }
 
