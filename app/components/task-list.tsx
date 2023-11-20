@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { Button } from "@nextui-org/button";
+import { Textarea } from "@nextui-org/input";
+import { Card, CardBody } from "@nextui-org/card";
 import {
   Modal,
   ModalContent,
@@ -9,28 +12,30 @@ import {
   ModalFooter,
   useDisclosure,
 } from "@nextui-org/modal";
-import { Card, CardBody } from "@nextui-org/card";
-import { Button } from "@nextui-org/button";
-import { Textarea } from "@nextui-org/input";
 
-import { program, TaskData } from "@/anchor/setup";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import toast, { Toaster } from "react-hot-toast";
 
+import { program, TaskData } from "@/anchor/setup";
 import TaskItem from "./task-item";
 
 export default function TaskList() {
-  const [taskMap, setTaskMap] = useState<Map<string, TaskData>>(new Map());
-
-  const [selectedTaskKey, setSelectedTaskKey] = useState<string | null>(null);
-  const [updateValue, setUpdateValue] = useState("");
-
-  const [isUpdateLoading, setIsUpdateLoading] = useState(false);
-  const [deleteLoadingStates, setDeleteLoadingStates] = useState(new Map());
-
+  // Get the connected wallet and connection
   const { publicKey, connected, sendTransaction } = useWallet();
   const { connection } = useConnection();
 
+  // Map of task account address to task data for the current user
+  const [taskMap, setTaskMap] = useState<Map<string, TaskData>>(new Map());
+
+  // Track the selected task key (account address) to update
+  const [selectedTaskKey, setSelectedTaskKey] = useState<string | null>(null);
+  const [updateValue, setUpdateValue] = useState("");
+
+  // Map to track the loading state of the delete button for each task
+  const [deleteLoadingStates, setDeleteLoadingStates] = useState(new Map());
+  const [isUpdateLoading, setIsUpdateLoading] = useState(false);
+
+  // Modal state
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
@@ -86,10 +91,10 @@ export default function TaskList() {
 
     // Convert the array to a map and save it to state
     const newTaskMap = new Map();
-    programAccounts.forEach((account) => {
+    programAccounts.forEach((task) => {
       newTaskMap.set(
-        account.publicKey.toString(), // on-chain task account address
-        account.account // task account data
+        task.publicKey.toString(), // on-chain task account address
+        task.account // task account data
       );
     });
     setTaskMap(newTaskMap);

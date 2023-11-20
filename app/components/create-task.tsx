@@ -14,8 +14,9 @@ import toast, { Toaster } from "react-hot-toast";
 export default function CreateTask() {
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
-  const [isLoading, setIsLoading] = useState(false);
+
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {
     console.log("Create Task");
@@ -87,7 +88,7 @@ export default function CreateTask() {
             isDisabled={!publicKey}
             onClick={handleCreate}
           >
-            Create Task
+            Create
           </Button>
         </CardBody>
       </Card>
