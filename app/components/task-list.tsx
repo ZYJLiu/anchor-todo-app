@@ -15,6 +15,7 @@ import {
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import toast, { Toaster } from "react-hot-toast";
+import useSWR from "swr";
 
 import { program, TaskData } from "@/anchor/setup";
 import TaskItem from "./task-item";
@@ -23,9 +24,6 @@ export default function TaskList() {
   // Get the connected wallet and connection
   const { publicKey, connected, sendTransaction } = useWallet();
   const { connection } = useConnection();
-
-  // Map of task account address to task data for the current user
-  const [taskMap, setTaskMap] = useState<Map<string, TaskData>>(new Map());
 
   // Track the selected task key (account address) to update
   const [selectedTaskKey, setSelectedTaskKey] = useState<string | null>(null);
@@ -38,78 +36,66 @@ export default function TaskList() {
   // Modal state
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  useEffect(() => {
-    fetchProgramAccounts();
+  // SWR fetcher function
+  const fetchTasks = async (pubKey: string) => {
+    console.log("fetch tasks", pubKey);
+    if (!pubKey) {
+      throw new Error("Wallet not connected");
+    }
+    const programAccounts = await program.account.task.all([
+      {
+        memcmp: {
+          bytes: pubKey,
+          offset: 8,
+        },
+      },
+    ]);
+    const newTaskMap = new Map();
+    programAccounts.forEach((task) => {
+      newTaskMap.set(task.publicKey.toString(), task.account);
+    });
+    return newTaskMap;
+  };
 
+  // Use SWR to manage task data
+  const { data: taskMap, mutate } = useSWR<Map<string, TaskData>>(
+    publicKey?.toString(),
+    fetchTasks
+  );
+
+  useEffect(() => {
     const createTaskEventListener = program.addEventListener(
       "CreateTask",
-      (event) => updateMapWithEvent(event)
+      (event) => handleEvent(event)
     );
 
     const updateTaskEventListener = program.addEventListener(
       "UpdateTask",
-      (event) => updateMapWithEvent(event)
+      (event) => handleEvent(event)
     );
 
     const deleteTaskEventListener = program.addEventListener(
       "DeleteTask",
-      (event) => updateMapWithEvent(event, true)
+      (event) => handleEvent(event, true)
     );
-
-    console.log("createTaskEventListener: ", createTaskEventListener);
-    console.log("updateTaskEventListener: ", updateTaskEventListener);
-    console.log("deleteTaskEventListener: ", deleteTaskEventListener);
 
     return () => {
       const removeEventListeners = async () => {
         await program.removeEventListener(createTaskEventListener);
         await program.removeEventListener(updateTaskEventListener);
         await program.removeEventListener(deleteTaskEventListener);
-        console.log("remove event listeners");
       };
 
       removeEventListeners();
     };
   }, [connected]);
 
-  const fetchProgramAccounts = async () => {
-    if (!publicKey) {
-      // If the user disconnects, clear the task map
-      setTaskMap(new Map());
-      return;
-    }
+  const handleEvent = (event: any, isDelete = false) => {
+    console.log("event:", event);
+    if (event.user.toString() !== publicKey?.toString()) return;
 
-    // Fetch all program accounts for the current connected user
-    const programAccounts = await program.account.task.all([
-      {
-        memcmp: {
-          bytes: publicKey.toString(), // filter for user account address
-          offset: 8, // 8 byte discriminator offset
-        },
-      },
-    ]);
-
-    // Convert the array to a map and save it to state
-    const newTaskMap = new Map();
-    programAccounts.forEach((task) => {
-      newTaskMap.set(
-        task.publicKey.toString(), // on-chain task account address
-        task.account // task account data
-      );
-    });
-    setTaskMap(newTaskMap);
-  };
-
-  const updateMapWithEvent = (event: any, isDelete = false) => {
-    console.log("event: ", event);
-    console.log("user: ", event.user.toString());
-    console.log("task: ", event.task.toString());
-    console.log("wallet", publicKey?.toString());
-    // Only update the map if the event is for the current user
-    if (event.user.toString() != publicKey?.toString()) return;
-
-    setTaskMap((prevTaskMap) => {
-      const newTaskMap = new Map(prevTaskMap);
+    mutate((currentMap) => {
+      const newTaskMap = new Map(currentMap);
       if (isDelete) {
         newTaskMap.delete(event.task.toString());
       } else {
@@ -118,8 +104,9 @@ export default function TaskList() {
           message: event.message,
         });
       }
+      console.log("mutate tasks");
       return newTaskMap;
-    });
+    }, false); // 'false' means no revalidation
   };
 
   // Invoke the update instruction on the program
@@ -204,17 +191,18 @@ export default function TaskList() {
     <>
       <Card>
         <CardBody>
-          {Array.from(taskMap.entries()).map(([key, taskData]) => (
-            <TaskItem
-              key={key}
-              taskKey={key}
-              taskData={taskData}
-              onOpen={onOpen}
-              setSelectedTaskKey={setSelectedTaskKey}
-              handleDelete={handleDelete}
-              isDeleteLoading={deleteLoadingStates.get(key) || false}
-            />
-          ))}
+          {taskMap &&
+            Array.from(taskMap.entries()).map(([key, taskData]) => (
+              <TaskItem
+                key={key}
+                taskKey={key}
+                taskData={taskData}
+                onOpen={onOpen}
+                setSelectedTaskKey={setSelectedTaskKey}
+                handleDelete={handleDelete}
+                isDeleteLoading={deleteLoadingStates.get(key) || false}
+              />
+            ))}
         </CardBody>
       </Card>
 
